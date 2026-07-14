@@ -140,6 +140,20 @@ create table needs_assessments (
   created_at timestamptz default now()
 );
 
+-- Ministry activities (photos, minutes & programme records per member entity)
+create table ministry_activities (
+  id uuid default uuid_generate_v4() primary key,
+  entity_id uuid references member_entities(id) on delete cascade,
+  title text not null,
+  activity_date date,
+  activity_type text check (activity_type in ('Outreach / Evangelism', 'Training / Discipleship', 'Church planting', 'Prayer event', 'Fellowship / Meeting', 'Relief / Community project', 'Other')),
+  description text,
+  minutes_notes text,
+  photo_urls text[],
+  recorded_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
 -- Activity log
 create table activity_log (
   id uuid default uuid_generate_v4() primary key,
@@ -159,6 +173,7 @@ alter table documents enable row level security;
 alter table finances enable row level security;
 alter table stage_checklist enable row level security;
 alter table needs_assessments enable row level security;
+alter table ministry_activities enable row level security;
 alter table activity_log enable row level security;
 
 -- Allow authenticated users to read all hub data
@@ -168,6 +183,10 @@ create policy "Authenticated users can read all" on meetings for select using (a
 create policy "Authenticated users can read all" on documents for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can read all" on stage_checklist for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can read all" on needs_assessments for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can read all" on ministry_activities for select using (auth.role() = 'authenticated');
+create policy "Authenticated can insert ministry_activities" on ministry_activities for insert with check (auth.role() = 'authenticated');
+create policy "Authenticated can update ministry_activities" on ministry_activities for update using (auth.role() = 'authenticated');
+create policy "Authenticated can delete ministry_activities" on ministry_activities for delete using (auth.role() = 'authenticated');
 create policy "Authenticated can insert needs_assessments" on needs_assessments for insert with check (auth.role() = 'authenticated');
 create policy "Authenticated users can read activity" on activity_log for select using (auth.role() = 'authenticated');
 
@@ -186,4 +205,12 @@ create policy "Authenticated can insert activity" on activity_log for insert wit
 create policy "Users can read own profile" on profiles for select using (auth.uid() = id);
 create policy "Users can update own profile" on profiles for update using (auth.uid() = id);
 create policy "Users can insert own profile" on profiles for insert with check (auth.uid() = id);
+
+-- Storage bucket for ministry activity photos (run this too)
+insert into storage.buckets (id, name, public) values ('ministry-photos', 'ministry-photos', true)
+on conflict (id) do nothing;
+
+create policy "Public can view ministry photos" on storage.objects for select using (bucket_id = 'ministry-photos');
+create policy "Authenticated can upload ministry photos" on storage.objects for insert with check (bucket_id = 'ministry-photos' and auth.role() = 'authenticated');
+create policy "Authenticated can delete ministry photos" on storage.objects for delete using (bucket_id = 'ministry-photos' and auth.role() = 'authenticated');
 */

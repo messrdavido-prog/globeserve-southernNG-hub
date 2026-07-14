@@ -16,23 +16,32 @@ const FOCUS_AREAS = [
   'Other',
 ]
 const EMPTY_FORM = { name: '', type: '', state_location: '', contact_person: '', contact_phone: '', contact_email: '', joined_date: '', focus_areas: [], notes: '' }
+const ACTIVITY_TYPES = ['Outreach / Evangelism', 'Training / Discipleship', 'Church planting', 'Prayer event', 'Fellowship / Meeting', 'Relief / Community project', 'Other']
+const EMPTY_ACTIVITY = { title: '', activity_date: '', activity_type: ACTIVITY_TYPES[0], description: '', minutes_notes: '' }
 
 export default function Members({ user }) {
   const [entities, setEntities] = useState([])
   const [upgsByEntity, setUpgsByEntity] = useState({})
+  const [activitiesByEntity, setActivitiesByEntity] = useState({})
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [activityEntityId, setActivityEntityId] = useState(null)
+  const [activityForm, setActivityForm] = useState(EMPTY_ACTIVITY)
+  const [activityPhotos, setActivityPhotos] = useState([])
+  const [savingActivity, setSavingActivity] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
 
   useEffect(() => { loadEntities() }, [])
 
   const loadEntities = async () => {
     setLoading(true)
-    const [entitiesRes, upgsRes] = await Promise.all([
+    const [entitiesRes, upgsRes, activitiesRes] = await Promise.all([
       supabase.from('member_entities').select('*').order('name'),
       supabase.from('upgs').select('id, name, engagement_stage, assigned_entity_id').not('assigned_entity_id', 'is', null),
+      supabase.from('ministry_activities').select('*').order('activity_date', { ascending: false }),
     ])
     setEntities(entitiesRes.data || [])
     const grouped = {}
@@ -41,8 +50,76 @@ export default function Members({ user }) {
       grouped[u.assigned_entity_id].push(u)
     })
     setUpgsByEntity(grouped)
+    const activityGroups = {}
+    ;(activitiesRes.data || []).forEach(a => {
+      if (!activityGroups[a.entity_id]) activityGroups[a.entity_id] = []
+      activityGroups[a.entity_id].push(a)
+    })
+    setActivitiesByEntity(activityGroups)
     setLoading(false)
   }
+
+  const openActivityForm = (entityId) => {
+    setActivityEntityId(entityId)
+    setActivityForm(EMPTY_ACTIVITY)
+    setActivityPhotos([])
+  }
+
+  const closeActivityForm = () => {
+    setActivityEntityId(null)
+    setActivityForm(EMPTY_ACTIVITY)
+    setActivityPhotos([])
+  }
+
+  const handlePhotoSelect = (e) => {
+    const files = Array.from(e.target.files || [])
+    setActivityPhotos(prev => [...prev, ...files])
+  }
+
+  const removeSelectedPhoto = (index) => {
+    setActivityPhotos(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleSaveActivity = async (e) => {
+    e.preventDefault()
+    if (!activityForm.title || !activityEntityId) return
+    setSavingActivity(true)
+    setUploadProgress('')
+
+    const photoUrls = []
+    for (let i = 0; i < activityPhotos.length; i++) {
+      const file = activityPhotos[i]
+      setUploadProgress(`Uploading photo ${i + 1} of ${activityPhotos.length}...`)
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const path = `${activityEntityId}/${Date.now()}-${safeName}`
+      const { error: uploadError } = await supabase.storage.from('ministry-photos').upload(path, file)
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('ministry-photos').getPublicUrl(path)
+        photoUrls.push(urlData.publicUrl)
+      }
+    }
+    setUploadProgress('')
+
+    const { error } = await supabase.from('ministry_activities').insert({
+      entity_id: activityEntityId,
+      title: activityForm.title,
+      activity_date: activityForm.activity_date || null,
+      activity_type: activityForm.activity_type,
+      description: activityForm.description,
+      minutes_notes: activityForm.minutes_notes,
+      photo_urls: photoUrls,
+      recorded_by: user.id,
+    })
+    if (!error) {
+      const entityName = entities.find(e => e.id === activityEntityId)?.name || ''
+      await supabase.from('activity_log').insert({ action: `Ministry activity logged for ${entityName}: ${activityForm.title}`, entity_type: 'ministry_activities', performed_by: user.id })
+      closeActivityForm()
+      loadEntities()
+    }
+    setSavingActivity(false)
+  }
+
+  const formatShortDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 
   const toggleFocusArea = (area) => {
     setForm(f => {
@@ -294,6 +371,52 @@ export default function Members({ user }) {
                           <div style={{fontSize:13,color:'var(--text-2)',lineHeight:1.6}}>{e.notes}</div>
                         </>
                       )}
+
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:16,marginBottom:8}}>
+                        <div style={{fontSize:10,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Ministry activities & records</div>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          style={{padding:'4px 10px',fontSize:12}}
+                          onClick={(ev) => { ev.stopPropagation(); openActivityForm(e.id) }}
+                        >
+                          <Icons.Plus /> Add activity
+                        </button>
+                      </div>
+
+                      {(activitiesByEntity[e.id] || []).length === 0 ? (
+                        <div style={{fontSize:13,color:'var(--text-3)'}}>No activities, photos, or minutes logged yet for this entity.</div>
+                      ) : (
+                        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                          {(activitiesByEntity[e.id] || []).map(a => (
+                            <div key={a.id} style={{background:'var(--surface)',borderRadius:8,padding:'10px 12px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8,marginBottom:4}}>
+                                <div>
+                                  <div style={{fontSize:13,fontWeight:500}}>{a.title}</div>
+                                  <div style={{fontSize:11,color:'var(--text-3)'}}>
+                                    {[a.activity_type, formatShortDate(a.activity_date)].filter(Boolean).join(' · ')}
+                                  </div>
+                                </div>
+                              </div>
+                              {a.description && <div style={{fontSize:12,color:'var(--text-2)',lineHeight:1.5,marginBottom:6}}>{a.description}</div>}
+                              {a.minutes_notes && (
+                                <div className="inline-icon-row" style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text-2)',marginBottom:6}}>
+                                  <Icons.File /> Minutes/notes recorded
+                                </div>
+                              )}
+                              {a.photo_urls && a.photo_urls.length > 0 && (
+                                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                                  {a.photo_urls.map((url, pi) => (
+                                    <a key={pi} href={url} target="_blank" rel="noreferrer">
+                                      <img src={url} alt={`${a.title} photo ${pi + 1}`} style={{width:56,height:56,objectFit:'cover',borderRadius:6,border:'1px solid var(--border)'}} />
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -301,6 +424,66 @@ export default function Members({ user }) {
             })}
           </div>
         ))
+      )}
+
+      {activityEntityId && (
+        <div className="modal-wrap" onClick={closeActivityForm}>
+          <div className="modal-box" onClick={(ev) => ev.stopPropagation()}>
+            <div className="modal-title"><Icons.Image /> Log ministry activity — {entities.find(e => e.id === activityEntityId)?.name}</div>
+            <form onSubmit={handleSaveActivity}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Activity / programme title *</label>
+                  <input value={activityForm.title} onChange={ev => setActivityForm({...activityForm, title: ev.target.value})} placeholder="e.g. Community outreach in Warri" required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Activity type</label>
+                  <select value={activityForm.activity_type} onChange={ev => setActivityForm({...activityForm, activity_type: ev.target.value})}>
+                    {ACTIVITY_TYPES.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Date</label>
+                <input type="date" value={activityForm.activity_date} onChange={ev => setActivityForm({...activityForm, activity_date: ev.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description</label>
+                <textarea value={activityForm.description} onChange={ev => setActivityForm({...activityForm, description: ev.target.value})} placeholder="What happened, who was involved, outcomes..." />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Minutes / notes</label>
+                <textarea value={activityForm.minutes_notes} onChange={ev => setActivityForm({...activityForm, minutes_notes: ev.target.value})} placeholder="Meeting minutes or detailed notes from this activity..." />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Photos</label>
+                <input type="file" accept="image/*" multiple onChange={handlePhotoSelect} />
+                {activityPhotos.length > 0 && (
+                  <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:8}}>
+                    {activityPhotos.map((f, i) => (
+                      <div key={i} style={{position:'relative'}}>
+                        <img src={URL.createObjectURL(f)} alt={f.name} style={{width:64,height:64,objectFit:'cover',borderRadius:6,border:'1px solid var(--border)'}} />
+                        <button
+                          type="button"
+                          onClick={() => removeSelectedPhoto(i)}
+                          className="photo-remove-btn"
+                          title="Remove photo"
+                        >
+                          <Icons.Trash />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {uploadProgress && <div style={{fontSize:12,color:'var(--text-2)',marginBottom:8}}>{uploadProgress}</div>}
+              <div className="btn-row">
+                <button type="submit" className="btn btn-primary" disabled={savingActivity}>{savingActivity ? 'Saving...' : 'Save activity'}</button>
+                <button type="button" className="btn btn-ghost" onClick={closeActivityForm}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   )
