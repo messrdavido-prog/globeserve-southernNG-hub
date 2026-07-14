@@ -126,7 +126,7 @@ export default function NeedsAssessment({ user }) {
             </div>
             <div className="form-group">
               <label className="form-label">State(s) of operation</label>
-              <input value={form.states_of_operation} onChange={e => setForm({ ...form, states_of_operation: e.target.value })} placeholder="e.g. Rivers, Delta, Bayelsa" />
+              <input value={form.states_of_operation} onChange={e => setForm({ ...form, states_of_operation: e.target.value })} placeholder="e.g. Oyo, Lagos, Ogun" />
             </div>
             <div className="form-group">
               <label className="form-label">Type of organisation</label>

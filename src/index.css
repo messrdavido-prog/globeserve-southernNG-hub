@@ -84,10 +84,11 @@ textarea { resize: vertical; min-height: 80px; }
   color: white;
   position: sticky; top: 0; z-index: 100;
 }
-.topbar-brand { display: flex; align-items: center; gap: 10px; }
-.topbar-logo { font-family: 'DM Serif Display', serif; font-size: 18px; letter-spacing: 0.02em; color: white; }
-.topbar-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.2); }
-.topbar-hub { font-size: 13px; color: rgba(255,255,255,0.7); }
+.topbar-brand { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; }
+.topbar-brand svg { width: 20px; height: 20px; flex-shrink: 0; }
+.topbar-logo { font-family: 'DM Serif Display', serif; font-size: 18px; letter-spacing: 0.02em; color: white; white-space: nowrap; flex-shrink: 0; }
+.topbar-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.2); flex-shrink: 0; }
+.topbar-hub { font-size: 13px; color: rgba(255,255,255,0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-right { display: flex; align-items: center; gap: 12px; }
 .topbar-stage { font-size: 11px; background: rgba(255,255,255,0.12); padding: 3px 10px; border-radius: 99px; color: rgba(255,255,255,0.85); }
 .topbar-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white; cursor: pointer; }
