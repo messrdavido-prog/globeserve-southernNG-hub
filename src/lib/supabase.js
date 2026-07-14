@@ -31,6 +31,7 @@ create table member_entities (
   contact_email text,
   status text default 'active' check (status in ('active', 'inactive', 'probationary')),
   joined_date date,
+  focus_areas text[],
   notes text,
   created_at timestamptz default now()
 );
