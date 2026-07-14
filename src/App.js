@@ -58,8 +58,9 @@ export default function App() {
   if (loading) return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}>
       <div style={{textAlign:'center'}}>
-        <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,marginBottom:8}}>GlobeServe</div>
-        <div style={{fontSize:13,color:'var(--text-2)'}}>Loading hub portal...</div>
+        <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,marginBottom:4}}>GlobeServe</div>
+        <div style={{fontSize:13,color:'var(--text-2)',marginBottom:8}}>Southern Nigeria Hub · Management Portal</div>
+        <div style={{fontSize:13,color:'var(--text-2)'}}>Loading...</div>
       </div>
     </div>
   )
@@ -91,7 +92,7 @@ export default function App() {
           <Icons.Globe />
           <span className="topbar-logo">GlobeServe</span>
           <div className="topbar-divider" />
-          <span className="topbar-hub">Southern Nigeria Hub</span>
+          <span className="topbar-hub">Southern Nigeria Hub<span className="topbar-portal-suffix"> · Management Portal</span></span>
         </div>
         <div className="topbar-right">
           <span className="topbar-stage">Stage 2 — Pioneering</span>

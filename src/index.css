@@ -256,4 +256,5 @@ textarea { resize: vertical; min-height: 80px; }
   .grid-2 { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .topbar-portal-suffix { display: none; }
 }
