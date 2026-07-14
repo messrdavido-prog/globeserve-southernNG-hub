@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Members from './pages/Members'
 import UPGTracker from './pages/UPGTracker'
 import Meetings from './pages/Meetings'
+import NeedsAssessment from './pages/NeedsAssessment'
 import { Documents, Finances, Objectives, StageProgress, SubmitReport } from './pages/OtherPages'
 
 const NAV = [
@@ -13,6 +14,7 @@ const NAV = [
   { id: 'members', label: 'Member entities', icon: 'Users', group: 'Overview' },
   { id: 'upgs', label: 'UPG tracker', icon: 'Flag', group: 'Overview' },
   { id: 'meetings', label: 'Meetings', icon: 'Calendar', group: 'Operations' },
+  { id: 'needs', label: 'Needs assessment', icon: 'Speakerphone', group: 'Operations' },
   { id: 'docs', label: 'Minutes & docs', icon: 'File', group: 'Operations' },
   { id: 'finances', label: 'Finances', icon: 'Cash', group: 'Operations' },
   { id: 'objectives', label: 'Objectives', icon: 'Target', group: 'Hub' },
@@ -76,6 +78,7 @@ export default function App() {
       case 'members': return <Members {...props} />
       case 'upgs': return <UPGTracker {...props} />
       case 'meetings': return <Meetings {...props} />
+      case 'needs': return <NeedsAssessment {...props} />
       case 'docs': return <Documents {...props} />
       case 'finances': return <Finances {...props} />
       case 'objectives': return <Objectives />

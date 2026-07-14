@@ -119,6 +119,27 @@ insert into stage_checklist (stage_number, item_text, is_completed) values
 (2, 'Member entities beginning UPG adoption and prayer', false),
 (2, 'Regular monthly coordinator meetings established', false);
 
+-- Needs assessment (member entity questionnaire)
+create table needs_assessments (
+  id uuid default uuid_generate_v4() primary key,
+  organisation_name text not null,
+  states_of_operation text,
+  org_type text,
+  active_missionaries integer,
+  ministry_focus text[],
+  ministry_focus_other text,
+  top_challenges text[],
+  top_challenges_other text,
+  support_areas text[],
+  support_areas_other text,
+  upgs_engaging text,
+  engagement_stage text,
+  training_needed text,
+  priorities_next_3_years text,
+  submitted_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
 -- Activity log
 create table activity_log (
   id uuid default uuid_generate_v4() primary key,
@@ -137,6 +158,7 @@ alter table meetings enable row level security;
 alter table documents enable row level security;
 alter table finances enable row level security;
 alter table stage_checklist enable row level security;
+alter table needs_assessments enable row level security;
 alter table activity_log enable row level security;
 
 -- Allow authenticated users to read all hub data
@@ -145,6 +167,8 @@ create policy "Authenticated users can read all" on upgs for select using (auth.
 create policy "Authenticated users can read all" on meetings for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can read all" on documents for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can read all" on stage_checklist for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can read all" on needs_assessments for select using (auth.role() = 'authenticated');
+create policy "Authenticated can insert needs_assessments" on needs_assessments for insert with check (auth.role() = 'authenticated');
 create policy "Authenticated users can read activity" on activity_log for select using (auth.role() = 'authenticated');
 
 -- Only coordinators can write (role checked via profiles)
