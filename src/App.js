@@ -92,6 +92,9 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div className="topbar-brand">
+          <button className="menu-toggle" onClick={() => setMenuOpen(o => !o)} aria-label="Open menu">
+            {menuOpen ? <Icons.X /> : <Icons.Menu />}
+          </button>
           <Icons.Globe />
           <span className="topbar-logo">GlobeServe</span>
           <div className="topbar-divider" />
@@ -105,7 +108,8 @@ export default function App() {
       </header>
 
       <div className="main-layout">
-        <nav className="sidebar">
+        {menuOpen && <div className="sidebar-backdrop" onClick={() => setMenuOpen(false)} />}
+        <nav className={`sidebar${menuOpen ? ' open' : ''}`}>
           {groups.map(group => (
             <div key={group} className="nav-group">
               <div className="nav-group-label">{group}</div>
